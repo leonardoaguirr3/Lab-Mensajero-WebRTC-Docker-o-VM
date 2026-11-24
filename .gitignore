@@ -11,3 +11,4 @@
 
 # Archivos del sistema en macOS
 .DS_Store
+.vscode/
