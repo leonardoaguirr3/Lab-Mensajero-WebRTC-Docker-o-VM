@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="Secuencia de transferencia de un archivo" id="secuencia_archivo">
+    <mxGraphModel dx="780" dy="320" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="780" pageHeight="320" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c1" style="edgeStyle=none;rounded=0;html=0;strokeColor=#96A9B2;strokeWidth=1.1;dashed=1;startArrow=none;endArrow=none;startFill=1;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="119" y="50" />
+            <mxPoint as="targetPoint" x="119" y="314" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c2" style="edgeStyle=none;rounded=0;html=0;strokeColor=#96A9B2;strokeWidth=1.1;dashed=1;startArrow=none;endArrow=none;startFill=1;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="657" y="50" />
+            <mxPoint as="targetPoint" x="657" y="314" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c3" value="Emisor · navegador A" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=16;fontStyle=1;fontColor=#172632;fillColor=#EDF3F5;strokeColor=#688290;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="16" y="5" width="206" height="38" />
+        </mxCell>
+        <mxCell id="c4" value="Receptor · navegador B" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=16;fontStyle=1;fontColor=#172632;fillColor=#EDF3F5;strokeColor=#688290;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="554" y="5" width="206" height="38" />
+        </mxCell>
+        <mxCell id="c5" style="edgeStyle=none;rounded=0;html=0;strokeColor=#224D64;strokeWidth=1.65;dashed=0;startArrow=none;endArrow=open;startFill=0;endFill=0;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="119" y="74" />
+            <mxPoint as="targetPoint" x="657" y="74" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c6" value="file-meta · ID, nombre, tipo, tamaño y SHA-256" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#FFFFFF;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="154" y="53" width="468" height="21" />
+        </mxCell>
+        <mxCell id="c7" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=none;strokeColor=#688290;strokeWidth=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="38" y="86" width="704" height="64" />
+        </mxCell>
+        <mxCell id="c8" value="loop · hasta el último bloque" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=12;fontStyle=1;fontColor=#172632;fillColor=#EDF3F5;strokeColor=#688290;strokeWidth=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="38" y="86" width="204" height="20" />
+        </mxCell>
+        <mxCell id="c9" style="edgeStyle=none;rounded=0;html=0;strokeColor=#224D64;strokeWidth=1.65;dashed=0;startArrow=none;endArrow=open;startFill=0;endFill=0;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="119" y="136" />
+            <mxPoint as="targetPoint" x="657" y="136" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c10" value="Fragmento binario · esperar si la cola supera el umbral" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#FFFFFF;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="154" y="115" width="468" height="21" />
+        </mxCell>
+        <mxCell id="c11" style="edgeStyle=none;rounded=0;html=0;strokeColor=#224D64;strokeWidth=1.65;dashed=0;startArrow=none;endArrow=open;startFill=0;endFill=0;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="119" y="178" />
+            <mxPoint as="targetPoint" x="657" y="178" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c12" value="file-end · ID de la transferencia" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#FFFFFF;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="154" y="157" width="468" height="21" />
+        </mxCell>
+        <mxCell id="c13" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=none;strokeColor=#688290;strokeWidth=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="38" y="191" width="704" height="113" />
+        </mxCell>
+        <mxCell id="c14" value="alt · tamaño y resumen coinciden" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=12;fontStyle=1;fontColor=#172632;fillColor=#EDF3F5;strokeColor=#688290;strokeWidth=1;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="38" y="191" width="235" height="20" />
+        </mxCell>
+        <mxCell id="c15" style="edgeStyle=none;rounded=0;html=0;strokeColor=#224D64;strokeWidth=1.65;dashed=0;startArrow=none;endArrow=open;startFill=0;endFill=0;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="657" y="238" />
+            <mxPoint as="targetPoint" x="119" y="238" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c16" value="file-ack · ID verificado" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#FFFFFF;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="154" y="217" width="468" height="21" />
+        </mxCell>
+        <mxCell id="c17" style="edgeStyle=none;rounded=0;html=0;strokeColor=#688290;strokeWidth=1;dashed=1;startArrow=none;endArrow=none;startFill=1;endFill=1;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="39" y="250" />
+            <mxPoint as="targetPoint" x="741" y="250" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c18" value="[tamaño o resumen distinto]" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=12;fontStyle=1;fontColor=#415C6A;fillColor=#FFFFFF;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="46" y="252" width="213" height="18" />
+        </mxCell>
+        <mxCell id="c19" style="edgeStyle=none;rounded=0;html=0;strokeColor=#224D64;strokeWidth=1.65;dashed=0;startArrow=none;endArrow=open;startFill=0;endFill=0;" edge="1" parent="1">
+          <mxGeometry as="geometry" relative="1">
+            <mxPoint as="sourcePoint" x="657" y="291" />
+            <mxPoint as="targetPoint" x="119" y="291" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c20" value="file-error · descartar la copia incompleta" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#FFFFFF;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="154" y="270" width="468" height="21" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

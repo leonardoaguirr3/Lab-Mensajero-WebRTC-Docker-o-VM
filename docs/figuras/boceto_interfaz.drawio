@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="Boceto de la interfaz web" id="boceto_interfaz">
+    <mxGraphModel dx="780" dy="218" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="780" pageHeight="218" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="c1" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#FFFFFF;strokeColor=#688290;strokeWidth=1.5;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="3" y="3" width="774" height="212" />
+        </mxCell>
+        <mxCell id="c2" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#EDF3F5;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="4" y="4" width="772" height="34" />
+        </mxCell>
+        <mxCell id="c3" value="Mensajero · Nodo A" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=17;fontStyle=1;fontColor=#224D64;fillColor=none;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="14" y="7" width="197" height="25" />
+        </mxCell>
+        <mxCell id="c4" value="Beto conectado · En llamada" style="rounded=0;whiteSpace=wrap;html=0;align=right;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=1;fontColor=#224D64;fillColor=none;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="478" y="7" width="278" height="25" />
+        </mxCell>
+        <mxCell id="c5" value="Video de Beto" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=18;fontStyle=0;fontColor=#172632;fillColor=#F7F9FA;strokeColor=#688290;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="16" y="48" width="281" height="95" />
+        </mxCell>
+        <mxCell id="c6" value="Mi cámara" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=16;fontStyle=0;fontColor=#172632;fillColor=#F7F9FA;strokeColor=#688290;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="305" y="48" width="137" height="95" />
+        </mxCell>
+        <mxCell id="c7" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#FFFFFF;strokeColor=#688290;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="455" y="48" width="306" height="70" />
+        </mxCell>
+        <mxCell id="c8" value="Chat" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=1;fontColor=#224D64;fillColor=none;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="461" y="51" width="289" height="20" />
+        </mxCell>
+        <mxCell id="c9" value="Ana   ¿Me escuchas?&#10;Beto  Sí, te escucho." style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=14;fontStyle=0;fontColor=#172632;fillColor=none;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="461" y="73" width="287" height="34" />
+        </mxCell>
+        <mxCell id="c10" value="Colgar" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=14;fontStyle=1;fontColor=#224D64;fillColor=#FFFFFF;strokeColor=#224D64;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="16" y="153" width="112" height="33" />
+        </mxCell>
+        <mxCell id="c11" value="Silenciar micrófono" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=14;fontStyle=1;fontColor=#224D64;fillColor=#FFFFFF;strokeColor=#224D64;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="134" y="153" width="151" height="33" />
+        </mxCell>
+        <mxCell id="c12" value="Apagar cámara" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=14;fontStyle=1;fontColor=#224D64;fillColor=#FFFFFF;strokeColor=#224D64;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="291" y="153" width="151" height="33" />
+        </mxCell>
+        <mxCell id="c13" value="Escribe un mensaje…" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=13;fontStyle=0;fontColor=#415C6A;fillColor=#FFFFFF;strokeColor=#688290;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="455" y="124" width="216" height="27" />
+        </mxCell>
+        <mxCell id="c14" value="Enviar" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=14;fontStyle=1;fontColor=#224D64;fillColor=#EDF3F5;strokeColor=#224D64;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="678" y="124" width="83" height="27" />
+        </mxCell>
+        <mxCell id="c15" value="Elegir archivo" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=13;fontStyle=1;fontColor=#224D64;fillColor=#FFFFFF;strokeColor=#224D64;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="455" y="159" width="108" height="29" />
+        </mxCell>
+        <mxCell id="c16" value="audio.ogg · 54 %" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=14;fontStyle=0;fontColor=#172632;fillColor=none;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="570" y="155" width="183" height="29" />
+        </mxCell>
+        <mxCell id="c17" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#EDF3F5;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="574" y="182" width="180" height="6" />
+        </mxCell>
+        <mxCell id="c18" value="" style="rounded=0;whiteSpace=wrap;html=0;align=center;verticalAlign=middle;fontFamily=Liberation Sans;fontSize=15;fontStyle=0;fontColor=#172632;fillColor=#224D64;strokeColor=none;strokeWidth=1.4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="574" y="182" width="97" height="6" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

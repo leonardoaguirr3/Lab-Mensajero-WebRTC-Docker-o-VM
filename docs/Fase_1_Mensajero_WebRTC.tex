@@ -1,0 +1,243 @@
+% !TEX program = lualatex
+
+\documentclass[11pt,letterpaper]{article}
+\usepackage[letterpaper,top=21mm,bottom=20mm,left=20mm,right=20mm,headheight=22pt,headsep=8pt,footskip=26pt]{geometry}
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\setsansfont{Latin Modern Sans}
+\setmonofont[Scale=0.85]{Latin Modern Mono}
+\usepackage{array,tabularx,booktabs,graphicx,xcolor,enumitem,fancyhdr,hyperref}
+\definecolor{tinta}{HTML}{172632}
+\definecolor{azul}{HTML}{234D62}
+\definecolor{gris}{HTML}{455862}
+\definecolor{regla}{HTML}{B9C8CF}
+\hypersetup{unicode,colorlinks=true,linkcolor=azul,urlcolor=azul,pdftitle={Mensajero WebRTC de dos personas | Investigación y arquitectura},pdfsubject={Sistemas Distribuidos | Fase 1},pdfauthor={David Leonardo Aguirre Sanchez},bookmarksopen=true}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\sffamily\fontsize{9}{11}\selectfont\color{gris}Universidad Tecnológica de Pereira}
+\fancyhead[R]{\sffamily\fontsize{9}{11}\selectfont\color{gris}Sistemas Distribuidos}
+\fancyfoot[L]{\sffamily\fontsize{9}{11}\selectfont\color{gris}Mensajero WebRTC \enspace·\enspace Investigación y arquitectura}
+\fancyfoot[R]{\sffamily\fontsize{9}{11}\selectfont\color{gris}\thepage\,/\,\pageref*{ultima}}
+\renewcommand{\headrulewidth}{0.35pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{regla}\leaders\hrule height \headrulewidth\hfill}}
+\setlength{\parindent}{0pt}\setlength{\parskip}{4pt}
+\setlength{\tabcolsep}{5pt}\renewcommand{\arraystretch}{1.18}
+\newcolumntype{Q}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\ct}[1]{\texttt{#1}}
+\newcommand{\refn}[1]{\mbox{\hyperlink{fuente#1}{\sffamily\fontsize{8.8}{10}\selectfont [#1]}}}
+\newcommand{\titulo}[3]{\pdfbookmark[1]{#3}{#1}{\sffamily\bfseries\fontsize{9}{11}\selectfont\color{azul}#2\par}\vspace{1pt}{\sffamily\bfseries\fontsize{24}{27}\selectfont\color{tinta}#3\par}\vspace{3pt}}
+\newcommand{\subt}[1]{\par\vspace{3pt}{\sffamily\bfseries\fontsize{13}{15}\selectfont\color{azul}#1\par}\vspace{-1pt}}
+\newcommand{\lead}[1]{{\fontsize{12}{15}\selectfont #1\par}\vspace{1pt}}
+\newcommand{\fig}[3]{\par\vspace{2pt}\noindent\includegraphics[width=#3\linewidth]{figuras/#1.pdf}\par\vspace{-1pt}{\sffamily\fontsize{9.4}{11.5}\selectfont\color{gris}#2\par}}
+\newcommand{\fu}[3]{\par\hypertarget{fuente#1}{}\noindent\hangindent=2.55em\hangafter=1\makebox[2.55em][l]{\textsf{\textbf{[#1]}}}\textbf{#2}. #3\par}
+\newcommand{\ww}[2]{\href{#1}{#2}}
+\setlist[enumerate]{nosep,leftmargin=1.75em,itemsep=2.3pt,topsep=3pt}
+\raggedbottom\setlength{\emergencystretch}{2em}
+\hyphenpenalty=10000\exhyphenpenalty=1000\tolerance=2000
+\begin{document}
+
+\titulo{alcance}{FASE 1 \enspace / \enspace INVESTIGACIÓN Y ARQUITECTURA}{Mensajero WebRTC de dos personas}
+{\sffamily\small David Leonardo Aguirre Sanchez \enspace·\enspace Ingeniería de Sistemas y Computación \enspace·\enspace 19 de noviembre de 2026\par}
+\lead{Ana entra por el nodo A y Beto por el nodo B. El primer objetivo es que un mensaje enviado desde una consola llegue a la otra a través de los dos nodos. La misma infraestructura permitirá que, desde sus navegadores, ambos conversen, hagan una videollamada y se envíen archivos.}
+La propuesta utiliza dos contenedores Docker en un Mac. La prueba inicial utiliza ese equipo. Para la demostración audiovisual se propone añadir un celular en la misma red Wi-Fi, con una cámara y un micrófono en cada extremo. Los dos contenedores siguen en el Mac. El alcance comprende una sesión entre dos personas. \refn{1}
+
+\subt{Bloque A \enspace Dos formas de aislar los nodos}
+{\small\begin{tabularx}{\linewidth}{@{}L{.175\linewidth}QQ@{}}\toprule
+\textbf{Criterio} & \textbf{Dos contenedores Linux} & \textbf{Dos máquinas virtuales}\\\midrule
+Aislamiento & Cada proceso tiene su propio entorno y comparte el núcleo Linux con el otro. & Cada huésped arranca su propio núcleo sobre hardware virtual.\\
+Recursos & Se comparten el núcleo y las capas de imagen. El coste adicional por nodo suele ser menor. & Cada huésped mantiene su propio sistema, memoria y disco virtual.\\
+Arranque & Una vez activo el motor, arranca el proceso del servicio. & El huésped arranca su sistema antes de iniciar el servicio.\\
+Portabilidad & Imagen y Compose describen el entorno. Se necesita una imagen compatible con la arquitectura de la CPU. & Una plantilla puede reproducir el sistema completo. Su traslado depende de la arquitectura y del hipervisor compatibles.\\\bottomrule
+\end{tabularx}}
+En macOS, Docker Desktop ejecuta los contenedores Linux dentro de una VM administrada. Se gana repetibilidad y se evita mantener dos instalaciones de Ubuntu. Se pierde la posibilidad de elegir un núcleo independiente por nodo, una razón válida para preferir dos VM en otro laboratorio. \refn{2}
+
+\subt{Red virtual y descubrimiento por nombre}
+Los dos servicios se conectarán a una red \ct{bridge} propia, \ct{red-mensajero}. Al abrir \ct{ws://nodo-b:3000/peer}, A consulta el DNS interno de Docker, obtiene la dirección vigente de B y abre una conexión TCP. WebSocket permite intercambiar mensajes en ambos sentidos. Si B se recrea, A debe volver a resolver su nombre y reconectar. \refn{3} \refn{8}
+
+{\small\begin{tabularx}{\linewidth}{@{}L{.17\linewidth}Q@{}}\toprule
+\textbf{Modo Docker} & \textbf{Aplicación al laboratorio}\\\midrule
+\ct{bridge} & Une contenedores de un mismo motor y ofrece descubrimiento por nombre en redes creadas por el usuario. Es la opción elegida.\\
+\ct{host} & Comparte la pila de red del anfitrión del motor. Los dos nodos disputarían el puerto 3000 si intentaran escuchar en la misma dirección.\\
+\ct{overlay} & Conecta servicios o contenedores en varios motores Docker. La propuesta utiliza un solo motor.\\
+\ct{none} & Deja únicamente la interfaz de bucle local. Impediría el enlace A–B.\\\bottomrule
+\end{tabularx}}
+
+\newpage
+\titulo{docker}{BLOQUE A \enspace / \enspace CONSTRUCCIÓN REPRODUCIBLE}{Qué se construye y qué se ejecuta}
+Una \textbf{imagen} empaqueta el sistema de archivos y la configuración con los que arranca un proceso. Un \textbf{contenedor} es una instancia de esa imagen con su propia capa de escritura y ciclo de vida. Los nodos A y B usarán la misma imagen de la aplicación. Su nombre de nodo y el destino del enlace se asignarán al ejecutarlos. \refn{2} \refn{4}
+
+\subt{Instrucciones del Dockerfile}
+{\small\begin{tabularx}{\linewidth}{@{}L{.22\linewidth}Q@{}}\toprule
+\textbf{Instrucción} & \textbf{Efecto y uso previsto}\\\midrule
+\ct{FROM} & Inicia una etapa a partir de una imagen base. Aquí se elegirá una imagen oficial de Node.js compatible con la CPU del anfitrión.\\
+\ct{WORKDIR} & Establece el directorio de trabajo para instrucciones y arranque posteriores.\\
+\ct{COPY} & Copia archivos desde el contexto de construcción. Primero irán los manifiestos de dependencias y después el servidor y la interfaz.\\
+\ct{RUN} & Ejecuta un comando al construir la imagen. Se prevé instalar las dependencias a partir del archivo de bloqueo con \ct{npm ci}. \refn{4}\\
+\ct{USER} & Fija el usuario que ejecutará las instrucciones posteriores y el proceso del contenedor. Se usará un usuario sin privilegios de administrador.\\
+\ct{EXPOSE} & Documenta el puerto de escucha previsto, aquí 3000/TCP. La publicación en el anfitrión se declara por separado.\\
+\ct{CMD} & Declara el comando predeterminado de arranque del servidor al crear una instancia.\\\bottomrule
+\end{tabularx}}
+Otras instrucciones del formato son \ct{ARG} (parámetro de construcción), \ct{ENV} (variable disponible en la imagen), \ct{ENTRYPOINT} (ejecutable de entrada), \ct{ADD} (adición de contenido con funciones adicionales), \ct{VOLUME} (punto de montaje), \ct{LABEL} (metadatos), \ct{HEALTHCHECK} (comprobación de salud), \ct{ONBUILD} (instrucción para una construcción descendiente), \ct{SHELL} (intérprete de la forma shell) y \ct{STOPSIGNAL} (señal de parada). \ct{MAINTAINER}, histórica, se sustituye por \ct{LABEL}. \refn{4}
+
+\subt{Cómo se declara el despliegue en Compose}
+\textbf{Servicios.} En \ct{docker-compose.yml}, \ct{services} declarará \ct{nodo-a}, \ct{nodo-b} y \ct{proxy}. Los dos primeros compartirán la imagen del mensajero. El tercero será Caddy, la pasarela HTTPS prevista en la guía. Cada servidor escuchará en sus interfaces internas en el puerto 3000. \refn{1} \refn{3} \refn{5}
+
+\textbf{Red y variables.} \ct{networks} definirá el puente y cada servicio se asociará a él. \ct{environment} asignará \ct{NODE\_ID} a cada nodo y \ct{PEER\_URL} al que inicia el enlace. A abrirá una sola conexión hacia B. Ese mismo enlace servirá para el retorno. \refn{3} \refn{8}
+
+\textbf{Puertos y volúmenes.} Los nodos se alcanzan por su puerto interno. En el proxy, \ct{ports} asociará el 443/TCP del Mac con el 443/TCP de Caddy. La clave \ct{volumes} de cada servicio define sus montajes. El proxy leerá su configuración en modo de solo lectura y usará un volumen nombrado, declarado también en el nivel superior, en \ct{/data} para conservar su autoridad certificadora tras recrearlo. Los archivos intercambiados quedan en los navegadores. \refn{3} \refn{5} \refn{14}
+
+\newpage
+\titulo{webrtc}{BLOQUES B Y G \enspace / \enspace COMUNICACIÓN EN TIEMPO REAL}{Cómo empieza una videollamada}
+WebRTC permite que dos navegadores intercambien medios y datos en tiempo real. El W3C especifica la API del navegador, incluida \ct{RTCPeerConnection}. La IETF define los protocolos de sesión, conectividad y transporte. La aplicación debe proporcionar un camino inicial para que dos participantes que aún no están conectados se intercambien información. En este diseño ese camino atraviesa los nodos A y B. \refn{6} \refn{7}
+
+\begin{enumerate}
+\item \textbf{Preparar.} Ambos usuarios ingresan a la sala. Uno pulsa Llamar y el otro acepta. Cada navegador obtiene permiso, captura sus pistas y las agrega a la conexión. Para este ejemplo, A tiene el identificador menor y genera las ofertas.
+\item \textbf{Ofrecer y responder.} A crea la oferta y guarda su descripción local. El SDP describe los medios y códecs, los parámetros ICE y la huella DTLS. B aplica la oferta como descripción remota, guarda su respuesta local y la devuelve. A aplica la respuesta como remota. \refn{6}
+\item \textbf{Encontrar una ruta.} Cada navegador envía los candidatos ICE conforme aparecen. Si llega un candidato antes de aplicar la descripción remota, se conserva para añadirlo después. ICE prueba y selecciona una pareja de candidatos. DTLS establece las claves y SRTP protege audio y video. \refn{6} \refn{7}
+\end{enumerate}
+\fig{secuencia_llamada}{Figura 1. Secuencia UML de la primera llamada. Las flechas entre nodos representan un único enlace WebSocket. El intercambio de candidatos puede solaparse con la oferta y la respuesta.}{1}
+
+\subt{Qué cambia cuando existe NAT}
+NAT traduce direcciones privadas y, a menudo, puertos. La dirección anunciada por un cliente puede carecer de ruta desde el otro y el equipo de borde puede filtrar tráfico entrante. \textbf{ICE} coordina las pruebas. En un Mac o en una LAN alcanzable pueden bastar candidatos locales. \textbf{STUN} permite descubrir la dirección y el puerto que un servidor externo observa. Si ninguna ruta directa funciona, \textbf{TURN} asigna una dirección de relevo y transporta el tráfico. El servidor de señalización sigue cumpliendo su función en los tres casos. \refn{6} \refn{7}
+
+\newpage
+\titulo{senal}{BLOQUE C \enspace / \enspace CANAL DE SEÑALIZACIÓN}{Qué mensajes cruzan los nodos}
+Con peticiones HTTP periódicas, el navegador debe preguntar repetidamente si hay novedades. El intervalo elegido añade espera o peticiones vacías. WebSocket establece una conexión persistente y bidireccional en la que cualquiera de los dos extremos puede enviar un mensaje cuando ocurre un evento. En el acceso del navegador, WSS protege esa conexión con TLS. La tabla compara tres opciones para transportar los eventos. \refn{8} \refn{9}
+
+{\small\begin{tabularx}{\linewidth}{@{}L{.22\linewidth}QQ@{}}\toprule
+\textbf{Opción} & \textbf{Qué aporta} & \textbf{Consecuencia para el diseño}\\\midrule
+WebSocket y \ct{ws} & Conexión bidireccional y mensajes de texto o binarios. & Elegido. Una terminal y un navegador pueden hablar el mismo protocolo. La aplicación resuelve presencia y reconexión.\\
+Socket.IO & Eventos, reconexión y transporte alternativo con \textit{long polling}. & Facilitaría la recuperación. Su protocolo requiere un cliente compatible y complica la demostración con un cliente WebSocket genérico.\\
+SSE y HTTP POST & SSE envía eventos del servidor al cliente. El navegador puede usar POST en el sentido inverso. & Es viable, pero obliga a coordinar dos caminos para una sola conversación de señalización.\\\bottomrule
+\end{tabularx}}
+
+\subt{Contrato propuesto}
+Cada mensaje entre nodos lleva una versión \ct{v}, identificador único \ct{id}, tipo \ct{type}, sala \ct{room}, origen \ct{from}, destino \ct{to} y objeto \ct{payload}. El servidor asigna o valida el origen a partir de la sesión registrada. Al abrirse la sala, los nodos comparten la presencia de sus clientes. Un mensaje local se entrega al destinatario local. Uno remoto cruza el enlace una sola vez. Los campos de SDP e ICE siguen las APIs del navegador. \refn{6}
+
+{\small\begin{tabularx}{\linewidth}{@{}L{.29\linewidth}Q@{}}\toprule
+\textbf{Familia de mensajes} & \textbf{Contenido o efecto previsto}\\\midrule
+\ct{join}, \ct{presence}, \ct{leave} & Identificador de participante, nodo y estado. Se admiten dos miembros por sala.\\
+\ct{call-invite}, \ct{call-accept}, \ct{call-reject}, \ct{hangup} & Invitación, aceptación, rechazo o fin de llamada. El chat conserva su propio estado.\\
+\ct{offer}, \ct{answer}, \ct{ice} & \ct{payload.sdp} transporta la descripción. Para ICE se usan \ct{candidate}, \ct{sdpMid} y \ct{sdpMLineIndex} dentro de \ct{payload}.\\
+\ct{data-request}, \ct{probe}, \ct{error} & Solicitar canal de datos, demostrar texto de consola o informar un error con su motivo.\\\bottomrule
+\end{tabularx}}
+
+\textbf{Ejemplo de mensaje de consola reenviado por A.} El mismo identificador permite localizar su salida en A y su llegada en B.
+{\small\begin{verbatim}
+{"v":1,"id":"m-17","type":"probe","room":"lab",
+ "from":"ana","to":"beto","payload":{"text":"Hola desde A"}}
+\end{verbatim}}
+Un mensaje que llega desde el nodo vecino se entrega localmente o produce un error si el destino salió. Ante una caída del enlace, A reintenta la conexión con espera creciente y ambos resincronizan la presencia. En la fase 2, \ct{probe} recorrerá los dos servidores. En la interfaz final el chat cotidiano usará su propio canal WebRTC. \refn{3} \refn{8} \refn{14}
+
+\newpage
+\titulo{medios}{BLOQUE D \enspace / \enspace MEDIOS}{Cámara, micrófono y calidad de video}
+\textbf{Quién captura.} El navegador llama a \ct{getUserMedia()} cuando la persona acepta activar su cámara y su micrófono. El sistema operativo y el navegador deben autorizar el acceso. La API entrega un \ct{MediaStream} con pistas que se agregan a la conexión y se reproducen en los elementos de video. El video local se mostrará silenciado para evitar realimentación. \refn{6} \refn{10}
+
+\textbf{Desde qué origen.} Se requiere un contexto seguro. HTTPS con un certificado confiable sirve en el Mac y en el celular. Los navegadores también tratan \ct{http://localhost} como confiable para desarrollo local. En el teléfono, \ct{localhost} identifica al propio teléfono. Para acceder al Mac se usará su nombre o IP de la LAN y un certificado que incluya ese nombre o IP. El teléfono deberá confiar en el certificado raíz público de la autoridad local de Caddy. \refn{5} \refn{10}
+
+\textbf{Qué cambia con la virtualización.} Un contenedor normalmente recibe solo los dispositivos que el entorno le habilita. Docker Desktop ejecuta Linux en una VM, por lo que la cámara del Mac no aparece automáticamente en el servidor. Un navegador dentro de una VM requeriría que el hipervisor le presentara la cámara o el dispositivo USB, además del permiso del huésped. Un navegador en el Mac o celular usa su propia cámara. Se elige esta última disposición. \refn{2} \refn{10}
+
+\subt{Qué códecs pueden acordar los navegadores}
+Un códec codifica y decodifica un flujo. Los pares anuncian sus capacidades en SDP y eligen una combinación compatible para cada medio. Para video, la base de interoperabilidad en navegadores WebRTC es VP8 y H.264 Constrained Baseline. Para audio se requieren Opus y G.711 en sus variantes PCMA y PCMU. \refn{6} \refn{11}
+
+{\small\begin{tabularx}{\linewidth}{@{}L{.17\linewidth}Q Q L{.19\linewidth}@{}}\toprule
+\textbf{Video} & \textbf{Compresión} & \textbf{Coste de CPU} & \textbf{Compatibilidad y licencia}\\\midrule
+VP8 & Eficiencia comparable con AVC para video interactivo. & En equipos sin aceleración, el procesador asume la codificación. & Obligatorio. Especificación abierta, sin regalías del proyecto.\\
+H.264 (CB) & Buena compresión para cámara a tasas moderadas. & La aceleración de hardware puede reducir el trabajo de CPU, especialmente en móviles. & Perfil obligatorio. Tecnología con patentes y licencias.\\
+VP9 & Suele lograr calidad semejante con menos bits que VP8. & El coste depende del codificador y del hardware. Se comprobaría en el celular antes de preferirlo. & Opcional en WebRTC. Formato abierto y sin regalías del proyecto.\\\bottomrule
+\end{tabularx}}
+MirrorFly sirve como introducción a las familias de códecs. Los RFC establecen qué debe implementar un navegador y MDN documenta las diferencias de compatibilidad y aceleración. El diseño propone Opus para voz y deja que los pares negocien el video. Al elegir VP9 se contrastará la tasa obtenida con la carga del dispositivo. \refn{11} \refn{12}
+
+\subt{Cuánto ancho de banda reservar}
+A 30 imágenes por segundo, Agora publica perfiles de 640\,×\,480 a \textbf{1,00 Mbit/s} y 1280\,×\,720 a \textbf{1,71 Mbit/s}, por flujo de video. En una llamada simétrica, cada extremo necesita esa capacidad de subida y una capacidad semejante de bajada, más audio y sobrecarga. Son referencias de planificación. La tasa real varía con el movimiento, el códec y la congestión. Para medirla, se tomarán dos muestras de \ct{bytesSent} de video con \ct{getStats()}. Ocho veces la diferencia de bytes, dividida por los segundos transcurridos, da la tasa en bit/s. \refn{6} \refn{13}
+
+\newpage
+\titulo{archivos}{BLOQUES E Y G \enspace / \enspace TEXTO Y ARCHIVOS}{Cómo confirmar que un archivo llegó completo}
+\ct{RTCDataChannel} permite intercambiar mensajes de texto o binarios mediante SCTP sobre DTLS. La entrega ordenada y la fiabilidad son propiedades distintas. Para chat y archivos se proponen dos canales, \ct{chat} y \ct{archivos}, ordenados y con retransmisiones completas. Un canal parcialmente fiable puede limitar las retransmisiones o la vida de un mensaje. Resulta adecuado si reemplazar una actualización de posición vale más que recuperar la anterior. \refn{6} \refn{14}
+
+\textbf{Independencia de la llamada.} Si el primer acto es escribir o adjuntar, se negocia la conexión de datos sin pedir cámara ni micrófono. El par con identificador menor crea los canales y genera las ofertas, una por vez. El otro puede enviar \ct{data-request}. Si luego se acepta una llamada, se agregan las pistas y se actualiza el SDP. Al colgar se detienen las pistas locales y se retiran de sus emisores. El chat puede seguir abierto. \refn{6} \refn{14}
+
+\textbf{Fragmentos y control de cola.} El emisor leerá porciones de hasta 16 KiB, reducidas si el máximo negociado \ct{pc.sctp.maxMessageSize} es menor y positivo. Esto limita el tamaño por mensaje y evita encolar el archivo entero de una vez. Como valores iniciales, si \ct{bufferedAmount} alcanza 256 KiB, se pausa la lectura. Con \ct{bufferedAmountLowThreshold} en 64 KiB, el evento \ct{bufferedamountlow} permite continuar. Esos umbrales son decisiones del diseño. \refn{6} \refn{14}
+
+\fig{secuencia_archivo}{Figura 2. Secuencia UML en el canal fiable ya abierto. Se admite un archivo en curso por sentido. Los mensajes de control llevan el ID y los bloques binarios pertenecen al archivo anunciado en ese sentido.}{0.94}
+
+\textbf{Integridad y progreso.} El receptor suma bytes, compara el tamaño con los metadatos y calcula el SHA-256 de la copia recibida. Solo al coincidir tamaño y resumen emite \ct{file-ack} y habilita la apertura o descarga. El emisor mostrará los bytes encolados y el receptor los bytes recibidos. Solo la confirmación indicará al emisor que el archivo llegó íntegro. Si se cierra el canal, se descarta la copia parcial y se ofrece repetir el envío. Para la prueba de 20 MiB se prevé calcular el resumen en memoria. Para archivos mucho mayores haría falta un hash incremental y escritura progresiva para acotar la memoria. \refn{14} \refn{15}
+
+\textbf{Alternativa por HTTP.} Un POST podría subir el archivo al servidor para que el receptor lo descargue después. Esto permite entrega diferida, a costa de almacenamiento, dos tramos de transferencia y una política de borrado y acceso. El canal entre pares conviene a este mensajero porque los usuarios estarán conectados a la vez. \refn{6} \refn{14} \refn{16}
+
+\newpage
+\titulo{cliente}{BLOQUES F Y G \enspace / \enspace INTERFAZ Y COMPONENTES}{Lo que ve el usuario y qué módulo responde}
+El servidor se propone en JavaScript con \textbf{Node.js}, \ct{node:http} para los recursos estáticos y \ct{ws} para las conexiones WebSocket. Cada nodo ejecutará un proceso que atenderá HTTP, la sesión del navegador y el enlace con su vecino. Python con FastAPI también permitiría estos servicios. Compartir el lenguaje entre cliente y servidor simplifica seguir el recorrido de un mensaje durante la sustentación. \refn{8} \refn{9}
+
+La interfaz se desarrollará con \textbf{HTML, CSS y JavaScript}. Una sola vista puede enlazar los botones con las APIs del navegador. Frente a React, se evita añadir una etapa de compilación para esta pantalla. El chat muestra mensajes y estado del otro usuario. Antes de una llamada se ve Llamar y al recibirla aparecen Aceptar y Rechazar. Durante la llamada se puede colgar, silenciar el micrófono o apagar la cámara. \refn{1} \refn{6} \refn{10}
+
+\fig{boceto_interfaz}{Figura 3. Boceto durante una llamada. Un archivo recibido ofrece vista previa para audio, video o imagen compatibles y descarga para cualquier tipo. El progreso pasa a «verificado» al recibir la confirmación.}{1}
+
+\subt{Componentes e interfaces}
+\fig{componentes}{Figura 4. Diagrama UML de componentes. Cada flecha discontinua va desde el módulo que usa una interfaz hacia el que la ofrece. El subsistema de nodo se replica en A y B.}{1}
+La interfaz solicita a \textit{Captura} iniciar o detener las pistas. Este módulo llama a \textit{Conexión entre pares} para asociarlas a \ct{RTCPeerConnection}. \textit{Chat} envía texto por el canal \ct{chat}. \textit{Archivos} gestiona metadatos, bloques y confirmación por \ct{archivos}. \textit{Conexión} entrega y recibe SDP e ICE mediante WebSocket. El servidor resuelve destinatarios y envía a su registro el ID del mensaje, el nodo y el sentido del reenvío. \refn{6} \refn{8} \refn{14}
+
+\newpage
+\titulo{fisico}{BLOQUE G \enspace / \enspace DESPLIEGUE}{Dónde corre cada pieza}
+En el escenario propuesto para la videollamada, el Mac aloja Docker Desktop y el navegador A. El celular ejecuta el navegador B. Caddy recibe HTTPS y selecciona el nodo por el prefijo de la ruta. Los servicios de la red Docker son los dos nodos del mensajero y la pasarela. \refn{1} \refn{2} \refn{3} \refn{5}
+
+\fig{despliegue}{Figura 5. Diagrama UML de despliegue. La línea discontinua solo se utiliza si se configura STUN/TURN. Para una prueba en un solo equipo también se puede abrir el navegador B en el Mac. \refn{3} \refn{5} \refn{6} \refn{7} \refn{14}}{1}
+
+{\small\begin{tabularx}{\linewidth}{@{}L{.24\linewidth}Q@{}}\toprule
+\textbf{Recorrido} & \textbf{Direcciones, protocolos y puertos previstos}\\\midrule
+Navegador a pasarela & En el Mac, \ct{https://localhost/a/} y \ct{https://localhost/b/}. En el celular, \ct{https://<IP-del-Mac>/b/}. HTML por HTTPS y señalización por WSS en \ct{/a/ws} o \ct{/b/ws}, sobre TCP 443.\\
+Pasarela a nodos & Caddy retira el prefijo. \ct{/a/} va a \ct{nodo-a:3000} y \ct{/b/} a \ct{nodo-b:3000}. Reenvía HTTP y la actualización a WebSocket. Caddy bloqueará el acceso externo a \ct{/peer} bajo ambos prefijos.\\
+Enlace A–B & A inicia \ct{ws://nodo-b:3000/peer}. B responde por el mismo socket. El DNS interno resuelve los nombres para los contenedores.\\
+Navegador a navegador & SRTP para medios y SCTP sobre DTLS para datos. ICE elige la ruta y los puertos, habitualmente UDP dinámicos. El 443 del proxy solo corresponde al acceso web y a la señalización.\\
+Pasarela opcional & STUN obtiene el mapeo y TURN puede retransmitir. Si se usa coturn, se prevé 3478/UDP o TCP para contactar el servicio y un rango de puertos de relevo accesible según su configuración.\\\bottomrule
+\end{tabularx}}
+
+\textbf{Equipo y red física.} Cámara y micrófono pertenecen a cada dispositivo. El router enlaza ambos equipos por Wi-Fi y Docker Desktop consume CPU, RAM y disco del Mac. Internet se utilizará para obtener imágenes y publicar el historial en GitHub. Con los recursos ya disponibles y una ruta ICE local, la prueba funciona dentro de la LAN. \refn{1} \refn{2} \refn{3} \refn{7}
+
+\newpage
+\titulo{decisiones}{BLOQUE G \enspace / \enspace JUSTIFICACIÓN}{Decisiones y riesgos que se comprobarán}
+{\small\begin{tabularx}{\linewidth}{@{}L{.22\linewidth}L{.215\linewidth}Q@{}}\toprule
+\textbf{Elección} & \textbf{Alternativa} & \textbf{Motivo en este laboratorio}\\\midrule
+Docker Desktop, Compose y bridge & Dos VM de Ubuntu con Vagrant & Una imagen, dos identidades, DNS de servicios y un despliegue declarativo en un Mac. \refn{2} \refn{3}\\
+Caddy con TLS local & Nginx y certificados gestionados aparte & El proxy atiende las dos rutas y administra una autoridad local. Se conserva su estado en un volumen. \refn{5}\\
+Node.js y \ct{ws} & Python con FastAPI & El mismo lenguaje permite seguir la señalización en ambos extremos y probarla con un cliente WebSocket estándar. \refn{8} \refn{9}\\
+HTML, CSS y JS nativos & React y empaquetador & Una pantalla y pocas transiciones de estado hacen viable llamar directamente a las APIs web. \refn{6} \refn{10}\\
+WebRTC entre dos pares & Servidor de medios SFU & Para una pareja, un solo enlace entre navegadores cumple el objetivo. ICE puede recurrir a TURN cuando la conectividad lo exige. \refn{1} \refn{6} \refn{7}\\
+RTCDataChannel fiable & Carga y descarga HTTP & Evita conservar copias del chat y de los archivos en los nodos de señalización. Los dos usuarios deben coincidir en línea. \refn{14} \refn{16}\\
+Git y GitHub, VS Code, diagrams.net, DevTools, \ct{wscat} y \ct{curl} & GitLab, otro editor, PlantUML o cliente de prueba propio & Git conserva el orden de entregas. El editor sirve para revisar fuentes. Los diagramas son editables. DevTools observa WebRTC, \ct{wscat} prueba WS y \ct{curl} permite comprobar HTTP. \refn{1} \refn{6} \refn{16}\\\bottomrule
+\end{tabularx}}
+
+\subt{Cómo se reconocerá el éxito}
+{\small\begin{tabularx}{\linewidth}{@{}L{.26\linewidth}Q@{}}\toprule
+\textbf{Riesgo observable} & \textbf{Acción y evidencia prevista}\\\midrule
+El mensaje se queda en A o se duplica & Usar dos terminales, una por nodo. Enviar \ct{probe} A→B y B→A, comparar IDs en ambos registros y comprobar una entrega por destino.\\
+El celular abre la página pero la cámara no arranca & Verificar la IP o nombre del certificado, la confianza en la CA local y los permisos del sitio y del sistema. Denegar el permiso una vez y comprobar que el chat sigue operativo. \refn{5} \refn{10}\\
+Hay señalización pero falla la llamada & Comprobar la pareja ICE seleccionada y los bytes de entrada y salida con \ct{getStats()}. Revisar aislamiento entre clientes de la Wi-Fi, usar una LAN accesible o configurar TURN si procede. \refn{7} \refn{13}\\
+Se corta un nodo o una transferencia & Mostrar desconexión, reconstruir presencia al volver el enlace y marcar el archivo parcial como interrumpido. Repetir con un archivo de 20 MiB o más y comparar tamaño y SHA-256 en ambos extremos. \refn{1} \refn{14} \refn{15}\\
+La prueba en un Mac comparte dispositivos & Utilizar dos clientes en el avance por consola. En la prueba audiovisual usar un celular y audífonos para observar imagen y sonido en ambos sentidos. \refn{1} \refn{10}\\\bottomrule
+\end{tabularx}}
+
+%Estas son verificaciones previstas para la construcción. La evidencia de esta fase es el diseño documentado y sus fuentes UML editables en \ct{docs/uml/}. \refn{1}
+
+\newpage
+\titulo{referencias}{FUENTES \enspace / \enspace CONSULTA DEL 19 DE NOVIEMBRE DE 2026}{Referencias}
+
+\begingroup\fontsize{10.4}{13}\selectfont\setlength{\parskip}{5pt}
+\fu{1}{Felipe Gutiérrez Isaza, Universidad Tecnológica de Pereira}{\emph{Laboratorio: Mensajero WebRTC en contenedores Docker o máquinas virtuales}. Guía de Sistemas Distribuidos, 14 de noviembre de 2026. Reglas generales, figura 1 y bloques A–G. Documento de la asignatura.}
+\fu{2}{Docker}{\ww{https://docs.docker.com/learn/content/what-is-a-container/}{What is a container?}, \ww{https://docs.docker.com/build/building/multi-platform/}{Multi-platform builds} y \ww{https://docs.docker.com/desktop/features/vmm/}{Virtual Machine Manager}. Aislamiento, imágenes y VM Linux de Docker Desktop.}
+\fu{3}{Docker}{\ww{https://docs.docker.com/engine/network/drivers/}{Network drivers}, \ww{https://docs.docker.com/compose/how-tos/networking/}{Networking in Compose}, \ww{https://docs.docker.com/reference/compose-file/services/}{Compose services}, \ww{https://docs.docker.com/reference/compose-file/volumes/}{Volumes} y \ww{https://docs.docker.com/engine/network/port-publishing/}{Port publishing}.}
+\fu{4}{Docker y npm}{\ww{https://docs.docker.com/reference/dockerfile/}{Dockerfile reference} y \ww{https://docs.npmjs.com/cli/v11/commands/npm-ci/}{npm ci}. Instrucciones de construcción y de ejecución.}
+\fu{5}{Caddy}{\ww{https://caddyserver.com/docs/automatic-https}{Automatic HTTPS}, sección Local HTTPS, y \ww{https://caddyserver.com/docs/caddyfile/directives/reverse_proxy}{reverse\_proxy}, sección Streaming. Véanse también \ww{https://caddyserver.com/docs/running}{Running Caddy con Docker} y \ww{https://caddyserver.com/docs/caddyfile/directives/handle_path}{handle\_path}.}
+\fu{6}{W3C e IETF}{\ww{https://www.w3.org/TR/webrtc/}{WebRTC 1.0: Real-Time Communication Between Browsers}. \ww{https://www.rfc-editor.org/rfc/rfc8825.html}{RFC 8825, protocolos WebRTC}, \ww{https://www.rfc-editor.org/rfc/rfc9429.html}{RFC 9429, JSEP}, \ww{https://www.rfc-editor.org/rfc/rfc8866.html}{RFC 8866, SDP}.}
+\fu{7}{IETF y proyecto coturn}{\ww{https://datatracker.ietf.org/doc/html/rfc3022}{RFC 3022, NAT}, \ww{https://www.rfc-editor.org/rfc/rfc8445.html}{RFC 8445, ICE}, \ww{https://www.rfc-editor.org/rfc/rfc8489.html}{RFC 8489, STUN}, \ww{https://www.rfc-editor.org/rfc/rfc8656.html}{RFC 8656, TURN}. \ww{https://github.com/coturn/coturn}{coturn, servidor TURN/STUN}.}
+\fu{8}{IETF, Socket.IO y MDN}{\ww{https://www.rfc-editor.org/rfc/rfc6455.html}{RFC 6455, The WebSocket Protocol}, \ww{https://socket.io/docs/v4/}{Socket.IO, Introduction}, \ww{https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events}{Using server-sent events}.}
+\fu{9}{Node.js, ws y FastAPI}{\ww{https://nodejs.org/api/http.html}{Node.js HTTP API}, \ww{https://github.com/websockets/ws}{ws, API y ejemplos de servidor} y \ww{https://fastapi.tiangolo.com/advanced/websockets/}{FastAPI, WebSockets}.}
+\fu{10}{W3C, MDN, Docker y Oracle}{\ww{https://www.w3.org/TR/mediacapture-streams/}{Media Capture and Streams}, \ww{https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia}{MediaDevices.getUserMedia()}, \ww{https://docs.docker.com/desktop/features/usbip/}{USB/IP en Docker Desktop} y \ww{https://docs.oracle.com/en/virtualization/virtualbox/7.1/user/BasicConcepts.html}{VirtualBox, configuración de dispositivos}.}
+\fu{11}{IETF y MDN}{\ww{https://www.rfc-editor.org/rfc/rfc7742.html}{RFC 7742, requisitos de video}, \ww{https://www.rfc-editor.org/rfc/rfc7874.html}{RFC 7874, requisitos de audio}, \ww{https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/WebRTC_codecs}{Codecs used by WebRTC}.}
+\fu{12}{MirrorFly, MDN y Chrome for Developers}{\ww{https://www.mirrorfly.com/blog/video-codecs/}{Video Codecs Formats Explained} y \ww{https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Video_codecs}{Web video codec guide}. \ww{https://developer.chrome.com/blog/vp9-webrtc/}{VP9 is now available in WebRTC}. Lectura comercial de partida y contraste técnico.}
+\fu{13}{Agora y W3C}{\ww{https://docs.agora.io/en/realtime-media/rtc/build/capture-and-render-video/configure-video-encoding/web}{Configure video encoding}, perfiles \ct{480p\_2} y \ct{720p\_3}. \ww{https://www.w3.org/TR/webrtc-stats/}{Identifiers for WebRTC’s Statistics API}.}
+\fu{14}{IETF y MDN}{\ww{https://www.rfc-editor.org/rfc/rfc8831.html}{RFC 8831, WebRTC Data Channels}, §6.6, y \ww{https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Using_data_channels}{Using WebRTC data channels}. Entrega, tamaño de mensajes y búfer.}
+\fu{15}{MDN}{\ww{https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest}{SubtleCrypto.digest()}. Cálculo de SHA-256 y limitación de entrada en memoria.}
+\fu{16}{IETF y documentación de herramientas}{\ww{https://www.rfc-editor.org/rfc/rfc9110.html}{RFC 9110, HTTP Semantics}, \ww{https://git-scm.com/docs/git-log}{Git log}, \ww{https://github.com/websockets/wscat}{wscat}, \ww{https://curl.se/docs/manpage.html}{curl}, \ww{https://www.drawio.com/docs/manual/advanced/diagram-source-edit/}{diagramas editables de diagrams.net}.}
+\endgroup\label{ultima}
+\end{document}
