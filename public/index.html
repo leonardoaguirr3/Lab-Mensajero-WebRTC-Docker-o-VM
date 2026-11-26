@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mensajero WebRTC</title>
+</head>
+<body>
+  <h1 id="titulo">Mensajero</h1>
+  <p id="estado" role="status">Conectando…</p>
+
+  <form id="formulario">
+    <label for="mensaje">Mensaje</label>
+    <input id="mensaje" maxlength="1000" autocomplete="off" required>
+    <button id="enviar" disabled>Enviar</button>
+  </form>
+
+  <ul id="historial" aria-live="polite"></ul>
+
+  <script>
+    const titulo = document.querySelector("#titulo");
+    const estado = document.querySelector("#estado");
+    const formulario = document.querySelector("#formulario");
+    const campo = document.querySelector("#mensaje");
+    const boton = document.querySelector("#enviar");
+    const historial = document.querySelector("#historial");
+
+    // Desde /a/ se conecta a /a/ws. Desde /b/ se conecta a /b/ws.
+    const url = new URL("ws", window.location.href);
+    url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const socket = new WebSocket(url);
+
+    function agregarLinea(texto) {
+      const linea = document.createElement("li");
+      linea.textContent = texto;
+      historial.append(linea);
+    }
+
+    socket.addEventListener("message", (evento) => {
+      const mensaje = JSON.parse(evento.data);
+
+      if (mensaje.type === "aviso") {
+        if (mensaje.texto.startsWith("Consola conectada a ")) {
+          const nodo = mensaje.texto.slice("Consola conectada a ".length);
+          titulo.textContent = `Mensajero · ${nodo}`;
+          document.title = `Mensajero · ${nodo}`;
+          estado.textContent = `Conectado al servidor ${nodo}`;
+          boton.disabled = false;
+          campo.focus();
+        } else {
+          agregarLinea(mensaje.texto);
+        }
+      } else if (mensaje.type === "probe") {
+        agregarLinea(`${mensaje.from}: ${mensaje.payload.text}`);
+      }
+    });
+
+    formulario.addEventListener("submit", (evento) => {
+      evento.preventDefault();
+      const texto = campo.value.trim();
+      if (!texto || socket.readyState !== WebSocket.OPEN) return;
+
+      socket.send(texto);
+      agregarLinea(`Yo: ${texto}`);
+      campo.value = "";
+      campo.focus();
+    });
+
+    socket.addEventListener("close", (evento) => {
+      estado.textContent = evento.reason || "Conexión cerrada. Recarga para reconectar.";
+      boton.disabled = true;
+    });
+
+    socket.addEventListener("error", () => {
+      estado.textContent = "Error al conectar con el servidor.";
+    });
+  </script>
+</body>
+</html>

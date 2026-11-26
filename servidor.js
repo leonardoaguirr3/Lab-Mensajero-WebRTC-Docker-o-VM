@@ -2,6 +2,9 @@ const http = require("node:http");
 const { randomUUID } = require("node:crypto");
 const { WebSocket, WebSocketServer } = require("ws");
 
+const { readFileSync } = require("node:fs");
+const path = require("node:path");
+
 const nodo = process.env.NODE_ID;
 const destino = process.env.REMOTE_ID;
 const urlVecino = process.env.PEER_URL;
@@ -136,9 +139,17 @@ function llamarAlVecino() {
   });
 }
 
+const pagina = readFileSync(path.join(__dirname, "public", "index.html"));
+
 const servidor = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-  res.end(`Nodo ${nodo} activo\n`);
+  if (req.method === "GET" && req.url === "/") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(pagina);
+    return;
+  }
+
+  res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end("Ruta desconocida");
 });
 
 const conexiones = new WebSocketServer({ noServer: true, maxPayload: 65536 });

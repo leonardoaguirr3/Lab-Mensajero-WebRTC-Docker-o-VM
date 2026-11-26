@@ -1,0 +1,12 @@
+:80 {
+    @interno path /a/peer /b/peer
+    respond @interno 404
+
+    handle_path /a/* {
+        reverse_proxy nodo-a:3000
+    }
+
+    handle_path /b/* {
+        reverse_proxy nodo-b:3000
+    }
+}

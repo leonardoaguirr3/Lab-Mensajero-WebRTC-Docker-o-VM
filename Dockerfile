@@ -5,6 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY servidor.js cliente.js ./
+COPY public/ ./public/
 
 USER node
 EXPOSE 3000
