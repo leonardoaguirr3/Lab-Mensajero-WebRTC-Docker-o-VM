@@ -1,0 +1,8 @@
+nodo-b-1  | [nodo-b] Escuchando en el puerto 3000
+nodo-b-1  | [nodo-b] Enlace activo con nodo-a
+nodo-b-1  | {"nodo":"nodo-b","evento":"recibido","id":"78eb7788-211e-42cb-b0a6-179cb085a285","texto":"Hola desde A"}
+nodo-b-1  | {"nodo":"nodo-b","evento":"enviado","id":"44ef8183-55aa-4745-a073-ad4e4828076b","texto":"Escuchado desde B"}
+nodo-a-1  | [nodo-a] Escuchando en el puerto 3000
+nodo-a-1  | [nodo-a] Enlace activo con nodo-b
+nodo-a-1  | {"nodo":"nodo-a","evento":"enviado","id":"78eb7788-211e-42cb-b0a6-179cb085a285","texto":"Hola desde A"}
+nodo-a-1  | {"nodo":"nodo-a","evento":"recibido","id":"44ef8183-55aa-4745-a073-ad4e4828076b","texto":"Escuchado desde B"}

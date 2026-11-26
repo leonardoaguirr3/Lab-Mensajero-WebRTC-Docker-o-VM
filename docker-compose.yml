@@ -1,0 +1,23 @@
+services:
+  nodo-a:
+    build: .
+    image: mensajero-webrtc:local
+    environment:
+      NODE_ID: nodo-a
+      REMOTE_ID: nodo-b
+      PEER_URL: ws://nodo-b:3000/peer
+    networks:
+      - red-mensajero
+
+  nodo-b:
+    image: mensajero-webrtc:local
+    pull_policy: never
+    environment:
+      NODE_ID: nodo-b
+      REMOTE_ID: nodo-a
+    networks:
+      - red-mensajero
+
+networks:
+  red-mensajero:
+    driver: bridge

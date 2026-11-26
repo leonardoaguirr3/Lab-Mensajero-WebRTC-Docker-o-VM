@@ -20,3 +20,12 @@
 
 
 **Uso de IA.** Solucionar problemas tecnicos con la edición en formato LaTeX local.
+
+## 26 de noviembre de 2026
+
+**Tiempo dedicado.** 3 horas
+
+**Trabajo realizado.** Ejecucion de fase 2.
+Contruccion y comprobacion de los dos servidores Node.js en una red Docker llamada `red-mensajero`. El servicio `nodo-a` abre una conexión WebSocket hacia `ws://nodo-b:3000/peer`. Ambos servidores usan esa conexión para intercambiar mensajes con identificador para verificar su correcto funcionamiento. Todo a traves de consola.
+
+**Uso de IA.** Ayuda en la construccion de cliente.js y servidor.js
