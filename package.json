@@ -1,0 +1,11 @@
+{
+  "name": "mensajero-webrtc",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
