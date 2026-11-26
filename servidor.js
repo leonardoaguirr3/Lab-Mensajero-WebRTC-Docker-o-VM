@@ -9,6 +9,9 @@ const nodo = process.env.NODE_ID;
 const destino = process.env.REMOTE_ID;
 const urlVecino = process.env.PEER_URL;
 
+const tiposDeSenal = new Set(["data-request", "offer", "answer", "ice"]);
+const protocoloWeb = "mensajero-webrtc";
+
 let cliente = null;
 let vecino = null;
 let esperaMs = 1000;
@@ -50,6 +53,31 @@ function conectarCliente(socket) {
       avisar("El otro nodo está desconectado. Reintenta en un momento.");
       return;
     }
+    
+    if (socket.protocol === protocoloWeb) {
+      let senal;
+      try {
+        senal = JSON.parse(texto);
+      } catch {
+        avisar("La señal recibida tiene un formato incorrecto.");
+        return;
+      }
+      
+      if (!senal || !tiposDeSenal.has(senal.type)) return;
+      
+      vecino.send(JSON.stringify({
+        v: 1,
+        id: randomUUID(),
+        room: "lab",
+        from: nodo,
+        to: destino,
+        type: senal.type,
+        payload: senal.payload
+      }));
+      
+      console.log(`[${nodo}] Señal enviada: ${senal.type}`);
+      return;
+    }
 
     const mensaje = {
       v: 1,
@@ -89,6 +117,22 @@ function conectarVecino(socket) {
     }
 
     if (!mensaje || mensaje.from !== destino || mensaje.to !== nodo) return;
+
+    if (tiposDeSenal.has(mensaje.type)) {
+      if (estaAbierto(cliente) && cliente.protocol === protocoloWeb) {
+        cliente.send(JSON.stringify(mensaje));
+        console.log(`[${nodo}] Señal recibida: ${mensaje.type}`);
+      } else {
+        socket.send(JSON.stringify({
+          ...mensaje,
+          type: "error",
+          from: nodo,
+          to: destino,
+          payload: { text: "Abre la pestaña del otro nodo antes de conectar." }
+        }));
+      }
+      return;
+    }
 
     if (mensaje.type === "error") {
       avisar(`Mensaje ${mensaje.id}: ${mensaje.payload?.text}`);

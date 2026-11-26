@@ -8,6 +8,8 @@
 <body>
   <h1 id="titulo">Mensajero</h1>
   <p id="estado" role="status">Conectando…</p>
+  <button id="conectar" type="button" disabled>Conectar chat WebRTC</button>
+  <p id="estadoRtc" role="status">Chat WebRTC pendiente.</p>
 
   <form id="formulario">
     <label for="mensaje">Mensaje</label>
@@ -20,60 +22,152 @@
   <script>
     const titulo = document.querySelector("#titulo");
     const estado = document.querySelector("#estado");
+    const estadoRtc = document.querySelector("#estadoRtc");
+    const conectar = document.querySelector("#conectar");
     const formulario = document.querySelector("#formulario");
     const campo = document.querySelector("#mensaje");
-    const boton = document.querySelector("#enviar");
+    const enviar = document.querySelector("#enviar");
     const historial = document.querySelector("#historial");
 
-    // Desde /a/ se conecta a /a/ws. Desde /b/ se conecta a /b/ws.
-    const url = new URL("ws", window.location.href);
+    const url = new URL("ws", location.href);
     url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(url);
+    const socket = new WebSocket(url, "mensajero-webrtc");
+
+    let nodo;
+    let par;
+    let canal;
+    let candidatosPendientes = [];
 
     function agregarLinea(texto) {
-      const linea = document.createElement("li");
-      linea.textContent = texto;
-      historial.append(linea);
+      const elemento = document.createElement("li");
+      elemento.textContent = texto;
+      historial.append(elemento);
     }
 
-    socket.addEventListener("message", (evento) => {
-      const mensaje = JSON.parse(evento.data);
+    function senal(type, payload = {}) {
+      socket.send(JSON.stringify({ type, payload }));
+    }
 
+    function prepararCanal(nuevoCanal) {
+      canal = nuevoCanal;
+
+      canal.onopen = () => {
+        estadoRtc.textContent = "Chat WebRTC conectado.";
+        enviar.disabled = false;
+        conectar.disabled = true;
+        campo.focus();
+      };
+
+      canal.onmessage = (evento) => agregarLinea(`Otro usuario: ${evento.data}`);
+
+      canal.onclose = () => {
+        enviar.disabled = true;
+        estadoRtc.textContent = "Canal cerrado. Recarga ambas pestañas para reconectar.";
+      };
+    }
+
+    function prepararPar() {
+      if (par) return;
+      par = new RTCPeerConnection();
+
+      par.onicecandidate = (evento) => {
+        if (evento.candidate && socket.readyState === WebSocket.OPEN) {
+          senal("ice", evento.candidate.toJSON());
+        }
+      };
+
+      par.ondatachannel = (evento) => prepararCanal(evento.channel);
+
+      par.onconnectionstatechange = () => {
+        if (par.connectionState === "failed") {
+          estadoRtc.textContent = "Falló la conexión. Recarga ambas pestañas.";
+          enviar.disabled = true;
+        }
+      };
+    }
+
+    async function aplicarDescripcion(descripcion) {
+      await par.setRemoteDescription(descripcion);
+      for (const candidato of candidatosPendientes) {
+        await par.addIceCandidate(candidato);
+      }
+      candidatosPendientes = [];
+    }
+
+    async function ofrecer() {
+      // Solo A genera ofertas, aunque el usuario pulse el botón en B.
+      if (par) return;
+      prepararPar();
+      prepararCanal(par.createDataChannel("chat"));
+      await par.setLocalDescription(await par.createOffer());
+      senal("offer", par.localDescription.toJSON());
+    }
+
+    conectar.onclick = async () => {
+      conectar.disabled = true;
+      estadoRtc.textContent = "Estableciendo conexión WebRTC…";
+      try {
+        if (nodo === "nodo-a") await ofrecer();
+        else senal("data-request");
+      } catch (error) {
+        estadoRtc.textContent = `Error al iniciar: ${error.message}`;
+      }
+    };
+
+    async function procesar(mensaje) {
       if (mensaje.type === "aviso") {
-        if (mensaje.texto.startsWith("Consola conectada a ")) {
-          const nodo = mensaje.texto.slice("Consola conectada a ".length);
+        const prefijo = "Consola conectada a ";
+        if (mensaje.texto.startsWith(prefijo)) {
+          nodo = mensaje.texto.slice(prefijo.length);
           titulo.textContent = `Mensajero · ${nodo}`;
-          document.title = `Mensajero · ${nodo}`;
-          estado.textContent = `Conectado al servidor ${nodo}`;
-          boton.disabled = false;
-          campo.focus();
+          document.title = titulo.textContent;
+          estado.textContent = `Señalización conectada a ${nodo}`;
+          conectar.disabled = false;
         } else {
           agregarLinea(mensaje.texto);
+          estadoRtc.textContent = "Si la conexión quedó pendiente, recarga ambas pestañas.";
         }
-      } else if (mensaje.type === "probe") {
-        agregarLinea(`${mensaje.from}: ${mensaje.payload.text}`);
+        return;
       }
-    });
 
-    formulario.addEventListener("submit", (evento) => {
+      if (mensaje.type === "data-request" && nodo === "nodo-a") {
+        await ofrecer();
+      } else if (mensaje.type === "offer" && nodo === "nodo-b") {
+        prepararPar();
+        await aplicarDescripcion(mensaje.payload);
+        await par.setLocalDescription(await par.createAnswer());
+        senal("answer", par.localDescription.toJSON());
+      } else if (mensaje.type === "answer" && nodo === "nodo-a" && par) {
+        await aplicarDescripcion(mensaje.payload);
+      } else if (mensaje.type === "ice") {
+        if (par?.remoteDescription) await par.addIceCandidate(mensaje.payload);
+        else candidatosPendientes.push(mensaje.payload);
+      }
+    }
+
+    // Procesa cada señal después de que termine la anterior.
+    let cola = Promise.resolve();
+    socket.onmessage = (evento) => {
+      cola = cola.then(() => procesar(JSON.parse(evento.data))).catch((error) => {
+        estadoRtc.textContent = `Error de negociación: ${error.message}`;
+      });
+    };
+
+    formulario.onsubmit = (evento) => {
       evento.preventDefault();
       const texto = campo.value.trim();
-      if (!texto || socket.readyState !== WebSocket.OPEN) return;
+      if (!texto || canal?.readyState !== "open") return;
 
-      socket.send(texto);
+      canal.send(texto);
       agregarLinea(`Yo: ${texto}`);
       campo.value = "";
       campo.focus();
-    });
+    };
 
-    socket.addEventListener("close", (evento) => {
-      estado.textContent = evento.reason || "Conexión cerrada. Recarga para reconectar.";
-      boton.disabled = true;
-    });
-
-    socket.addEventListener("error", () => {
-      estado.textContent = "Error al conectar con el servidor.";
-    });
+    socket.onclose = (evento) => {
+      estado.textContent = evento.reason || "Señalización desconectada.";
+      conectar.disabled = true;
+    };
   </script>
 </body>
 </html>
