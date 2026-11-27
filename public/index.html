@@ -41,6 +41,29 @@
         <video id="videoRemoto" autoplay controls playsinline width="360"></video>
       </figure>
     </section>
+
+<section aria-labelledby="tituloArchivos">
+  <h2 id="tituloArchivos">Archivos</h2>
+
+  <label for="archivo">Seleccionar archivo</label>
+  <input id="archivo" type="file">
+  <button id="enviarArchivo" type="button" disabled>Enviar archivo</button>
+
+  <p>
+    <label for="progresoEnvio">Envío</label>
+    <progress id="progresoEnvio" max="100" value="0"></progress>
+    <span id="estadoEnvio" role="status">Sin envío.</span>
+  </p>
+
+  <p>
+    <label for="progresoRecepcion">Recepción</label>
+    <progress id="progresoRecepcion" max="100" value="0"></progress>
+    <span id="estadoRecepcion" role="status">Sin recepción.</span>
+  </p>
+
+  <div id="archivosRecibidos"></div>
+</section>
+
     <script>
       const titulo = document.querySelector("#titulo");
       const estado = document.querySelector("#estado");
@@ -113,7 +136,10 @@
           }
         };
 
-        par.ondatachannel = (evento) => prepararCanal(evento.channel);
+        par.ondatachannel = ({ channel }) => {
+  if (channel.label === "chat") prepararCanal(channel);
+  if (channel.label === "archivos") prepararCanalArchivos(channel);
+};
 
         par.onconnectionstatechange = () => {
           if (par.connectionState === "failed") {
@@ -139,6 +165,7 @@
         par.addTransceiver("video", { direction: "sendrecv" });
 
         prepararCanal(par.createDataChannel("chat"));
+        prepararCanalArchivos(par.createDataChannel("archivos", { ordered: true }));
         await par.setLocalDescription(await par.createOffer());
         senal("offer", par.localDescription.toJSON());
       }
@@ -366,6 +393,220 @@
           terminarLlamada("La otra persona terminó la llamada.");
         }
       }
+
+
+      const selectorArchivo = document.querySelector("#archivo");
+const botonArchivo = document.querySelector("#enviarArchivo");
+const barraEnvio = document.querySelector("#progresoEnvio");
+const barraRecepcion = document.querySelector("#progresoRecepcion");
+const estadoEnvio = document.querySelector("#estadoEnvio");
+const estadoRecepcion = document.querySelector("#estadoRecepcion");
+const recibidos = document.querySelector("#archivosRecibidos");
+
+let canalArchivos;
+let envio = null;
+let recepcion = null;
+
+function actualizarBotonArchivo() {
+  botonArchivo.disabled =
+    canalArchivos?.readyState !== "open" || !selectorArchivo.files.length || !!envio;
+}
+
+selectorArchivo.onchange = actualizarBotonArchivo;
+
+async function calcularHash(archivo) {
+  const bytes = await archivo.arrayBuffer();
+  const resumen = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(resumen), (byte) =>
+    byte.toString(16).padStart(2, "0")
+  ).join("");
+}
+
+function esperarEspacio(canal) {
+  if (canal.readyState !== "open") {
+    return Promise.reject(new Error("Se cerró el canal."));
+  }
+  if (canal.bufferedAmount < 256 * 1024) return Promise.resolve();
+
+  return new Promise((resolver, rechazar) => {
+    function limpiar() {
+      canal.removeEventListener("bufferedamountlow", continuar);
+      canal.removeEventListener("close", cancelar);
+    }
+    function continuar() {
+      limpiar();
+      resolver();
+    }
+    function cancelar() {
+      limpiar();
+      rechazar(new Error("Transferencia interrumpida."));
+    }
+    canal.addEventListener("bufferedamountlow", continuar);
+    canal.addEventListener("close", cancelar);
+  });
+}
+
+botonArchivo.onclick = async () => {
+  const archivo = selectorArchivo.files[0];
+  if (!archivo || envio || canalArchivos?.readyState !== "open") return;
+
+  const canal = canalArchivos;
+  const id = crypto.randomUUID();
+  envio = id;
+  actualizarBotonArchivo();
+  barraEnvio.value = 0;
+  estadoEnvio.textContent = "Calculando SHA-256…";
+
+  try {
+    const hash = await calcularHash(archivo);
+    const maximo = par.sctp?.maxMessageSize;
+    const bloque = maximo > 0 ? Math.min(16384, maximo) : 16384;
+
+    canal.send(JSON.stringify({
+      tipo: "inicio", id, nombre: archivo.name,
+      mime: archivo.type, tamano: archivo.size, hash
+    }));
+
+    let enviados = 0;
+    while (enviados < archivo.size) {
+      await esperarEspacio(canal);
+      const datos = await archivo.slice(enviados, enviados + bloque).arrayBuffer();
+      canal.send(datos);
+      enviados += datos.byteLength;
+
+      const porcentaje = Math.floor(100 * enviados / archivo.size);
+      barraEnvio.value = porcentaje;
+      estadoEnvio.textContent = `${porcentaje} % encolado`;
+    }
+
+    canal.send(JSON.stringify({ tipo: "fin", id }));
+    estadoEnvio.textContent = "Esperando confirmación del receptor…";
+  } catch (error) {
+    if (canal.readyState === "open") {
+      canal.send(JSON.stringify({ tipo: "cancelar", id }));
+    }
+    envio = null;
+    estadoEnvio.textContent = `Envío interrumpido: ${error.message}`;
+    actualizarBotonArchivo();
+  }
+};
+
+function mostrarArchivo(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const bloque = document.createElement("p");
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombre;
+  enlace.textContent = `Descargar ${nombre}`;
+  bloque.append(enlace);
+
+  let vista;
+  if (blob.type.startsWith("image/")) vista = document.createElement("img");
+  if (blob.type.startsWith("audio/")) vista = document.createElement("audio");
+  if (blob.type.startsWith("video/")) vista = document.createElement("video");
+
+  if (vista) {
+    vista.src = url;
+    if (vista.tagName === "IMG") vista.alt = nombre;
+    else vista.controls = true;
+    vista.style.maxWidth = "320px";
+    bloque.append(document.createElement("br"), vista);
+  }
+
+  recibidos.append(bloque);
+}
+
+async function recibirArchivo(datos, canal) {
+  if (typeof datos !== "string") {
+    if (!recepcion) return;
+
+    recepcion.bytes += datos.byteLength;
+    if (recepcion.bytes > recepcion.tamano) {
+      throw new Error("Se recibieron más bytes de los anunciados.");
+    }
+
+    recepcion.partes.push(datos);
+    const porcentaje = Math.floor(100 * recepcion.bytes / recepcion.tamano);
+    barraRecepcion.value = porcentaje;
+    estadoRecepcion.textContent = `${recepcion.nombre} · ${porcentaje} %`;
+    return;
+  }
+
+  const mensaje = JSON.parse(datos);
+
+  if (mensaje.tipo === "inicio") {
+    recepcion = { ...mensaje, bytes: 0, partes: [] };
+    barraRecepcion.value = 0;
+    estadoRecepcion.textContent = `Recibiendo ${mensaje.nombre}…`;
+    return;
+  }
+
+  if (mensaje.tipo === "cancelar" && recepcion?.id === mensaje.id) {
+    recepcion = null;
+    estadoRecepcion.textContent = "El emisor interrumpió la transferencia.";
+    return;
+  }
+
+  if (mensaje.tipo === "fin" && recepcion?.id === mensaje.id) {
+    const copia = recepcion;
+    const blob = new Blob(copia.partes, { type: copia.mime });
+    estadoRecepcion.textContent = "Verificando tamaño y SHA-256…";
+
+    if (blob.size !== copia.tamano || await calcularHash(blob) !== copia.hash) {
+      throw new Error("El tamaño o el SHA-256 no coincide.");
+    }
+
+    if (canal.readyState !== "open" || recepcion !== copia) return;
+    mostrarArchivo(blob, copia.nombre);
+    barraRecepcion.value = 100;
+    estadoRecepcion.textContent = `${copia.nombre} · ${blob.size} bytes verificados`;
+    canal.send(JSON.stringify({ tipo: "confirmado", id: copia.id }));
+    recepcion = null;
+    return;
+  }
+
+  if (mensaje.id === envio &&
+      (mensaje.tipo === "confirmado" || mensaje.tipo === "error")) {
+    if (mensaje.tipo === "confirmado") {
+      barraEnvio.value = 100;
+      estadoEnvio.textContent = "El receptor verificó el archivo.";
+    } else {
+      estadoEnvio.textContent = "El receptor detectó un error en el archivo.";
+    }
+
+    envio = null;
+    actualizarBotonArchivo();
+  }
+}
+
+function prepararCanalArchivos(canal) {
+  canalArchivos = canal;
+  canal.binaryType = "arraybuffer";
+  canal.bufferedAmountLowThreshold = 64 * 1024;
+  canal.onopen = actualizarBotonArchivo;
+
+  // Conserva el orden incluso mientras se calcula el hash del archivo recibido.
+  let cola = Promise.resolve();
+  canal.onmessage = ({ data }) => {
+    cola = cola.then(() => recibirArchivo(data, canal)).catch((error) => {
+      if (recepcion && canal.readyState === "open") {
+        canal.send(JSON.stringify({ tipo: "error", id: recepcion.id }));
+      }
+      recepcion = null;
+      estadoRecepcion.textContent = `Recepción interrumpida: ${error.message}`;
+    });
+  };
+
+  canal.onclose = () => {
+    if (envio) estadoEnvio.textContent = "Envío interrumpido por desconexión.";
+    if (recepcion) estadoRecepcion.textContent = "Recepción interrumpida.";
+    envio = null;
+    recepcion = null;
+    actualizarBotonArchivo();
+  };
+
+  actualizarBotonArchivo();
+}
 
       </script>
   </body>
