@@ -1,4 +1,8 @@
-:80 {
+{
+    debug
+    default_sni {$LAN_IP}
+}
+(rutas_mensajero) {
     @interno path /a/peer /b/peer
     respond @interno 404
 
@@ -9,4 +13,13 @@
     handle_path /b/* {
         reverse_proxy nodo-b:3000
     }
+}
+
+:80 {
+    import rutas_mensajero
+}
+
+https://{$LAN_IP} {
+    tls internal
+    import rutas_mensajero
 }

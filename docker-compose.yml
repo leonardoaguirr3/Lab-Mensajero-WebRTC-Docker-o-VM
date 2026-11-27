@@ -22,11 +22,19 @@ services:
     image: caddy:2-alpine
     ports:
       - "127.0.0.1:8080:80"
+      - "443:443"
+      - "8443:443"
+    environment:
+      LAN_IP: "192.168.101.7"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
     networks:
       - red-mensajero
 
 networks:
   red-mensajero:
     driver: bridge
+
+volumes:
+  caddy_data:

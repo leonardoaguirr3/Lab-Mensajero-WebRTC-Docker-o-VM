@@ -8,6 +8,7 @@
   <body>
     <h1 id="titulo">Mensajero</h1>
     <p id="estado" role="status">Conectando…</p>
+    <p id="presencia" role="status">Consultando presencia…</p>
     <button id="conectar" type="button" disabled>Conectar chat WebRTC</button>
     <p id="estadoRtc" role="status">Chat WebRTC pendiente.</p>
 
@@ -48,6 +49,8 @@
   <label for="archivo">Seleccionar archivo</label>
   <input id="archivo" type="file">
   <button id="enviarArchivo" type="button" disabled>Enviar archivo</button>
+  <label>
+  <input id="envioLento" type="checkbox">Ralentizar el envío para probar una interrupción</label>
 
   <p>
     <label for="progresoEnvio">Envío</label>
@@ -142,10 +145,12 @@
 };
 
         par.onconnectionstatechange = () => {
-          if (par.connectionState === "failed") {
-            estadoRtc.textContent = "Falló la conexión. Recarga ambas pestañas.";
-            enviar.disabled = true;
-          }
+            if (par.connectionState === "failed") {
+                marcarTransferenciaInterrumpida();
+                canalArchivos?.close();
+                estadoRtc.textContent = "Falló la conexión. Recarga ambas pestañas.";
+                enviar.disabled = true;
+            }
         };
       }
 
@@ -182,6 +187,13 @@
       };
 
       async function procesar(mensaje) {
+        if (mensaje.type === "presence") {
+  document.querySelector("#presencia").textContent = mensaje.payload.conectado
+    ? "Otro participante conectado."
+    : "Otro participante desconectado.";
+  return;
+}
+
         if (mensaje.type === "aviso") {
           const prefijo = "Consola conectada a ";
           if (mensaje.texto.startsWith(prefijo)) {
@@ -239,6 +251,7 @@
       socket.onclose = (evento) => {
         estado.textContent = evento.reason || "Señalización desconectada.";
         conectar.disabled = true;
+        document.querySelector("#presencia").textContent = "Presencia desconocida.";
       };
 
       const botonLlamar = document.querySelector("#llamar");
@@ -407,6 +420,22 @@ let canalArchivos;
 let envio = null;
 let recepcion = null;
 
+function marcarTransferenciaInterrumpida() {
+  if (recepcion) {
+    const porcentaje = barraRecepcion.value;
+    estadoRecepcion.textContent =
+      `Recepción interrumpida al ${porcentaje} %. Archivo incompleto.`;
+    recepcion = null;
+  }
+
+  if (envio) {
+    estadoEnvio.textContent = "Envío interrumpido por desconexión.";
+    envio = null;
+  }
+
+  botonArchivo.disabled = true;
+}
+
 function actualizarBotonArchivo() {
   botonArchivo.disabled =
     canalArchivos?.readyState !== "open" || !selectorArchivo.files.length || !!envio;
@@ -467,7 +496,10 @@ botonArchivo.onclick = async () => {
       mime: archivo.type, tamano: archivo.size, hash
     }));
 
+    const envioLento = document.querySelector("#envioLento").checked;
     let enviados = 0;
+    let siguientePausa = 256 * 1024;
+
     while (enviados < archivo.size) {
       await esperarEspacio(canal);
       const datos = await archivo.slice(enviados, enviados + bloque).arrayBuffer();
@@ -477,7 +509,11 @@ botonArchivo.onclick = async () => {
       const porcentaje = Math.floor(100 * enviados / archivo.size);
       barraEnvio.value = porcentaje;
       estadoEnvio.textContent = `${porcentaje} % encolado`;
+      if (envioLento && enviados >= siguientePausa) {
+        siguientePausa += 256 * 1024;
+        await new Promise((continuar) => setTimeout(continuar, 250));
     }
+}
 
     canal.send(JSON.stringify({ tipo: "fin", id }));
     estadoEnvio.textContent = "Esperando confirmación del receptor…";
@@ -597,13 +633,7 @@ function prepararCanalArchivos(canal) {
     });
   };
 
-  canal.onclose = () => {
-    if (envio) estadoEnvio.textContent = "Envío interrumpido por desconexión.";
-    if (recepcion) estadoRecepcion.textContent = "Recepción interrumpida.";
-    envio = null;
-    recepcion = null;
-    actualizarBotonArchivo();
-  };
+  canal.onclose = marcarTransferenciaInterrumpida;
 
   actualizarBotonArchivo();
 }

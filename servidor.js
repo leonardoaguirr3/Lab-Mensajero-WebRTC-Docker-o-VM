@@ -14,6 +14,30 @@ const protocoloWeb = "mensajero-webrtc";
 
 let cliente = null;
 let vecino = null;
+let participanteRemoto = false;
+
+function informarAlNavegador() {
+  if (estaAbierto(cliente) && cliente.protocol === protocoloWeb) {
+    cliente.send(JSON.stringify({
+      type: "presence",
+      payload: { conectado: participanteRemoto }
+    }));
+  }
+}
+
+function anunciarPresencia() {
+  if (estaAbierto(vecino)) {
+    vecino.send(JSON.stringify({
+      type: "presence",
+      from: nodo,
+      to: destino,
+      payload: {
+        conectado: estaAbierto(cliente) && cliente.protocol === protocoloWeb
+      }
+    }));
+  }
+}
+
 let esperaMs = 1000;
 
 function estaAbierto(socket) {
@@ -44,6 +68,9 @@ function conectarCliente(socket) {
 
   cliente = socket;
   avisar(`Consola conectada a ${nodo}`);
+  informarAlNavegador();
+  anunciarPresencia();
+
 
   socket.on("message", (datos) => {
     const texto = datos.toString().trim();
@@ -94,7 +121,9 @@ function conectarCliente(socket) {
   });
 
   socket.on("close", () => {
-    if (cliente === socket) cliente = null;
+    if (cliente !== socket) return;
+    cliente = null;
+    anunciarPresencia();
   });
 }
 
@@ -106,6 +135,7 @@ function conectarVecino(socket) {
   }
 
   vecino = socket;
+  anunciarPresencia();
   console.log(`[${nodo}] Enlace activo con ${destino}`);
 
   socket.on("message", (datos) => {
@@ -117,6 +147,12 @@ function conectarVecino(socket) {
     }
 
     if (!mensaje || mensaje.from !== destino || mensaje.to !== nodo) return;
+    if (mensaje.type === "presence") {
+  participanteRemoto = mensaje.payload?.conectado === true;
+  informarAlNavegador();
+  return;
+}
+
 
     if (tiposDeSenal.has(mensaje.type)) {
       if (estaAbierto(cliente) && cliente.protocol === protocoloWeb) {
@@ -159,7 +195,10 @@ function conectarVecino(socket) {
   });
 
   socket.on("close", () => {
-    if (vecino === socket) vecino = null;
+    if (vecino !== socket) return;
+    vecino = null;
+    participanteRemoto = false;
+    informarAlNavegador();
     console.log(`[${nodo}] Enlace cerrado con ${destino}`);
   });
 }
